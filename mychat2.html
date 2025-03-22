@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Group-Toddler</title>
+        <link rel="stylesheet" href="chatstyle.css">
+    </head>
+    <body>
+        <?php
+            session_start();
+            include "database.php";
+            if(isset($_SESSION['username'])) {
+                $sender = $_SESSION['username'];
+            } else {
+                echo "invalid"; 
+            }
+        ?>
+        <div id="leftSidebar" class="sidebar">
+            <h2 style="color:white;">Welcome , <?php echo $sender; ?> !</h2>
+        </div>
+
+        <div id="rightSidebar" class="sidebar">
+            <h2><a href="index2.php" style="text-decoration:none; color:white;">HomePage</a></h2>
+            <h2><a href="logout.php" style="text-decoration:none; color:white;">Logout</a></h2>
+        </div>
+
+        <div id="messages"></div>
+
+        <div id="sendMsg">
+            <input type="text" id="msgTxt" placeholder="ENTER YOUR MSG..." onkeydown="return onEnter(event)">
+            <input type="button" id="msgBtn" value="send" onclick="module.sendMsg()">
+        </div>
+
+        <script>
+            module = {};
+            function onEnter(event) {
+                if (event.keyCode === 13) { // 13 is the key code for the enter key
+                    event.preventDefault();
+                    module.sendMsg();
+                }
+            }
+        </script>
+        <script type="module">
+            import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+            import { getDatabase, ref, set, remove, onChildAdded, onChildRemoved } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+            const firebaseConfig = {
+                apiKey: "AIzaSyAybqtMC40JDaVbkrlJnXTmN9o23HIp5EU",
+                authDomain: "my-chat2-ab8cd.firebaseapp.com",
+                projectId: "my-chat2-ab8cd",
+                storageBucket: "my-chat2-ab8cd.appspot.com",
+                messagingSenderId: "298575101575",
+                appId: "1:298575101575:web:446206558ecbe54f30c222",
+                measurementId: "G-FYD2JVTBTQ"
+            };
+
+
+            const app = initializeApp(firebaseConfig);
+            const db = getDatabase(app);
+
+            var msgTxt = document.getElementById('msgTxt');
+            var sender = "<?php echo $sender; ?>";
+
+            // TO SEND MESSAGES
+            module.sendMsg = function sendMsg() {
+                var msg = msgTxt.value;
+                var timestamp = new Date().getTime();
+                set(ref(db, "messages/" + timestamp), {
+                    msg: msg,
+                    sender: sender
+                })
+
+                msgTxt.value = "";
+            }
+
+            // TO RECEIVE MSG
+            onChildAdded(ref(db, "messages"), (data) => {
+                if (data.val().sender == sender) {
+                    messages.innerHTML += "<div style=justify-content:end class=outer id=" + data.key + "><div id=inner class=me>you : " + data.val().msg + "<br><button id=dltMsg onclick=module.dltMsg(" + data.key + ")>DELETE</button></div></div>";
+                } else {
+                    messages.innerHTML += "<div class=outer id=" + data.key + "><div id=inner class=notMe>" + data.val().sender + " : " + data.val().msg + "</div></div>";
+                }
+            })
+
+            // TO DELETE MSG
+            module.dltMsg = function dltMsg(key) {
+                remove(ref(db, "messages/" + key));
+            }
+
+            // WHEN MSG IS DELETED
+            onChildRemoved(ref(db, "messages"), (data) => {
+                var msgBox = document.getElementById(data.key);
+                messages.removeChild(msgBox);
+            })
+        </script>
+    </body>
+</html>
